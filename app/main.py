@@ -8,10 +8,13 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
 from app.api.routers.users import router as users_router
-
+from app.api.routers.projects import router as projects_router
 
 from app.db import models  
 
+import app.db.models.user  
+import app.db.models.project  
+import app.db.models.project_access  
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,7 +33,8 @@ def create_app() -> FastAPI:
     app.include_router(health_router, tags=["health"])
     app.include_router(auth_router, tags=["auth"])
     app.include_router(users_router, tags=["users"])
-
+    app.include_router(projects_router, tags=["projects"])
+    
     return app
 
 
