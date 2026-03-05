@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_EXPIRES_MINUTES: int = 60
     JWT_ALGORITHM: str = "HS256"
+    STORAGE_DIR: str = "storage"
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -9,12 +9,14 @@ from app.db.base import Base
 from app.db.session import engine
 from app.api.routers.users import router as users_router
 from app.api.routers.projects import router as projects_router
-
+from app.api.routers.documents import router as documents_router
 from app.db import models  
+
 
 import app.db.models.user  
 import app.db.models.project  
-import app.db.models.project_access  
+import app.db.models.project_access 
+import app.db.models.document   
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,6 +36,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router, tags=["auth"])
     app.include_router(users_router, tags=["users"])
     app.include_router(projects_router, tags=["projects"])
+    app.include_router(documents_router, tags=["documents"])
     
     return app
 
