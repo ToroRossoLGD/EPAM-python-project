@@ -1,3 +1,4 @@
+from app.services.document_validation import validate_document_metadata
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy import select
@@ -55,11 +56,14 @@ async def upload_project_document(
     await require_project_access(db, project_id, current_user.id)
     storage = get_storage()
 
-    if not file.filename:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File must have a filename")
+    validate_document_metadata(file)
 
     key = storage.build_key(project_id, file.filename)
-    size = await storage.save(key=key, file=file)
+    size = await storage.save(
+        key=key,
+        file=file,
+        max_size_bytes=settings.MAX_DOCUMENT_SIZE_BYTES,
+    )
 
     doc = Document(
         project_id=project_id,
@@ -104,6 +108,45 @@ async def download_document(
         filename=doc.filename,
     )
 
+@router.put("/document/{document_id}", response_model=DocumentOut)
+async def update_document(
+    document_id: int,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> DocumentOut:
+    doc = await require_document_access(db, document_id, current_user.id)
+    storage = get_storage()
+
+    validate_document_metadata(file)
+
+    old_key = doc.storage_key
+    new_key = storage.build_key(doc.project_id, file.filename)
+    new_size = await storage.save(
+        key=new_key,
+        file=file,
+        max_size_bytes=settings.MAX_DOCUMENT_SIZE_BYTES,
+    )
+
+    doc.filename = file.filename
+    doc.content_type = file.content_type or "application/octet-stream"
+    doc.storage_key = new_key
+    doc.size_bytes = new_size
+    doc.uploaded_by = current_user.id
+
+    await db.commit()
+    await db.refresh(doc)
+
+    storage.delete(old_key)
+
+    return DocumentOut(
+        id=doc.id,
+        project_id=doc.project_id,
+        uploaded_by=doc.uploaded_by,
+        filename=doc.filename,
+        content_type=doc.content_type,
+        size_bytes=doc.size_bytes,
+    )
 
 @router.delete("/document/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(

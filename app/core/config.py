@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     JWT_EXPIRES_MINUTES: int = 60
     JWT_ALGORITHM: str = "HS256"
     STORAGE_DIR: str = "storage"
+    ALLOWED_DOCUMENT_EXTENSIONS: str = ".pdf,.docx"
+    ALLOWED_DOCUMENT_CONTENT_TYPES: str = (
+        "application/pdf,"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    )
+    MAX_DOCUMENT_SIZE_BYTES: int = 10 * 1024 * 1024  
 
     model_config = SettingsConfigDict(
         env_file=".env",
