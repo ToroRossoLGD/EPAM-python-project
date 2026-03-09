@@ -8,3 +8,6 @@ class DocumentOut(BaseModel):
     filename: str
     content_type: str
     size_bytes: int
+
+class DocumentDownloadOut(BaseModel):
+    download_url: str
