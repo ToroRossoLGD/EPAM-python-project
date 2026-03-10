@@ -25,6 +25,8 @@ class Settings(BaseSettings):
 
     USE_S3_STORAGE: bool = False
 
+    TESTING: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

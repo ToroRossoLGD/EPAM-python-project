@@ -29,7 +29,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
-        lifespan=lifespan,
+        lifespan=None if settings.TESTING else lifespan,
     )
 
     app.include_router(health_router, tags=["health"])
