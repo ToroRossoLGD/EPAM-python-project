@@ -9,7 +9,6 @@ from app.core.dependencies import get_current_user
 from app.db.models.document import Document
 from app.db.models.user import User
 from app.db.session import get_db
-from app.schemas.document import DocumentOut
 from app.services.documents import require_document_access
 from app.services.projects import require_project_access
 from app.services.storage import LocalStorage
@@ -35,6 +34,8 @@ def get_storage():
             region=settings.AWS_REGION,
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+            use_ssl=settings.AWS_S3_USE_SSL,
         )
         storage.ensure_exists()
         return storage

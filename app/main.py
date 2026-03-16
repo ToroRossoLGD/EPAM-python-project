@@ -10,7 +10,7 @@ from app.db.session import engine
 from app.api.routers.users import router as users_router
 from app.api.routers.projects import router as projects_router
 from app.api.routers.documents import router as documents_router
-from app.db import models  
+
 
 
 import app.db.models.user  

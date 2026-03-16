@@ -9,7 +9,7 @@ from fastapi import HTTPException, UploadFile, status
 
 class S3Storage:
     
-
+    
     def __init__(
         self,
         *,
@@ -17,6 +17,8 @@ class S3Storage:
         region: str,
         aws_access_key_id: str,
         aws_secret_access_key: str,
+        endpoint_url: str | None = None,
+        use_ssl: bool = False,
     ):
         self.bucket_name = bucket_name
         self.region = region
@@ -25,6 +27,8 @@ class S3Storage:
             region_name=region,
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
+            endpoint_url=endpoint_url,
+            use_ssl=use_ssl,
         )
 
     def build_key(self, project_id: int, filename: str) -> str:
@@ -32,12 +36,12 @@ class S3Storage:
         return f"projects/{project_id}/{uuid4().hex}_{safe_name}"
 
     def ensure_exists(self) -> None:
-        
-        return None
+        existing_buckets = self.client.list_buckets().get("Buckets", [])
+        names = {bucket["Name"] for bucket in existing_buckets}
+        if self.bucket_name not in names:
+            self.client.create_bucket(Bucket=self.bucket_name)
 
     async def save(self, *, key: str, file: UploadFile, max_size_bytes: int) -> int:
-        size = 0
-
         content = await file.read()
         size = len(content)
 
@@ -66,9 +70,6 @@ class S3Storage:
     def generate_download_url(self, key: str, expires_in: int = 600) -> str:
         return self.client.generate_presigned_url(
             "get_object",
-            Params={
-                "Bucket": self.bucket_name,
-                "Key": key,
-            },
+            Params={"Bucket": self.bucket_name, "Key": key},
             ExpiresIn=expires_in,
         )
