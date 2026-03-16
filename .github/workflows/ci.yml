@@ -32,5 +32,9 @@ jobs:
           ruff check .
 
       - name: Run tests
+        env: 
+          TESTING: "true"
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+          JWT_SECRET: "test-secret"
         run: |
           python -m pytest -v
