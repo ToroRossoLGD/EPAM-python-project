@@ -18,6 +18,17 @@ class Settings(BaseSettings):
     )
     MAX_DOCUMENT_SIZE_BYTES: int = 10 * 1024 * 1024  
 
+    AWS_ACCESS_KEY_ID: str | None = None
+    AWS_SECRET_ACCESS_KEY: str | None = None
+    AWS_S3_ENDPOINT_URL: str | None = None
+    AWS_S3_USE_SSL: bool = False
+    AWS_S3_BUCKET: str | None = None
+    AWS_REGION: str = "eu-central-1"
+
+    USE_S3_STORAGE: bool = False
+
+    TESTING: bool = False
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
