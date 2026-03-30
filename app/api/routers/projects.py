@@ -2,12 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user
+from app.core.security import create_invite_token
 from app.db.models.project import Project
 from app.db.models.project_access import ProjectAccess
 from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdate
+from app.services.email import send_invite_email
 from app.services.projects import require_owner, require_project_access
 
 router = APIRouter()
@@ -115,3 +118,20 @@ async def invite_user(
     db.add(ProjectAccess(project_id=project_id, user_id=invited.id, role="participant"))
     await db.commit()
     return None
+
+@router.post("/project/{project_id}/share")
+async def share_project(
+    project_id: int,
+    email: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await require_owner(db, project_id, current_user.id)
+
+    token = create_invite_token(email, project_id)
+
+    link = f"{settings.FRONTEND_URL}/join?token={token}"
+
+    send_invite_email(email, link)
+
+    return {"detail": "Invite email sent"}

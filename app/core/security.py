@@ -29,3 +29,15 @@ def decode_access_token(token: str) -> dict:
         return jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
     except JWTError as e:
         raise ValueError("Invalid token") from e
+
+def create_invite_token(email: str, project_id: int) -> str:
+    expire = datetime.utcnow() + timedelta(hours=24)
+
+    payload = {
+        "sub": email,
+        "project_id": project_id,
+        "type": "invite",
+        "exp": expire,
+    }
+
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm="HS256")

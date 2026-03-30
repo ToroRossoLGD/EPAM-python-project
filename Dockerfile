@@ -2,10 +2,13 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+COPY requirements.txt requirements.txt
+COPY requirements-dev.txt requirements-dev.txt
+
 COPY . /app
 
 RUN pip install --upgrade pip && \
-    pip install fastapi uvicorn sqlalchemy asyncpg alembic passlib[argon2] python-jose[cryptography] pydantic-settings python-multipart boto3 pytest httpx pytest-asyncio aiosqlite ruff
+    pip install -r requirements.txt
 
 EXPOSE 8000
 

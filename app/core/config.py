@@ -7,6 +7,8 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
 
+    EMAIL_FROM: str = "noreply@example.com"
+    FRONTEND_URL: str = "http://localhost:8000"
     JWT_SECRET: str
     JWT_EXPIRES_MINUTES: int = 60
     JWT_ALGORITHM: str = "HS256"

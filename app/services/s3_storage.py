@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+from pathlib import Path
 from uuid import uuid4
 
 import boto3
 from botocore.client import BaseClient
+from botocore.exceptions import ClientError
 from fastapi import HTTPException, UploadFile, status
 
+from app.services.storage_base import Storage
 
-class S3Storage:
-    
-    
+
+class S3Storage(Storage):
     def __init__(
         self,
         *,
@@ -20,6 +22,8 @@ class S3Storage:
         endpoint_url: str | None = None,
         use_ssl: bool = False,
     ):
+        
+        
         self.bucket_name = bucket_name
         self.region = region
         self.client: BaseClient = boto3.client(
@@ -31,15 +35,17 @@ class S3Storage:
             use_ssl=use_ssl,
         )
 
-    def build_key(self, project_id: int, filename: str) -> str:
-        safe_name = filename.replace("/", "_").replace("\\", "_")
-        return f"projects/{project_id}/{uuid4().hex}_{safe_name}"
-
     def ensure_exists(self) -> None:
-        existing_buckets = self.client.list_buckets().get("Buckets", [])
-        names = {bucket["Name"] for bucket in existing_buckets}
-        if self.bucket_name not in names:
-            self.client.create_bucket(Bucket=self.bucket_name)
+        try:
+            self.client.head_bucket(Bucket=self.bucket_name)
+        except ClientError as exc:
+            raise RuntimeError(
+                f"S3 bucket '{self.bucket_name}' does not exist or is not accessible"
+            ) from exc
+
+    def build_key(self, project_id: int, filename: str) -> str:
+        safe_name = Path(filename).name
+        return f"projects/{project_id}/{uuid4().hex}_{safe_name}"
 
     async def save(self, *, key: str, file: UploadFile, max_size_bytes: int) -> int:
         content = await file.read()
@@ -67,7 +73,10 @@ class S3Storage:
     def delete(self, key: str) -> None:
         self.client.delete_object(Bucket=self.bucket_name, Key=key)
 
-    def generate_download_url(self, key: str, expires_in: int = 600) -> str:
+    def path_for(self, key: str) -> Path | None:
+        return None
+
+    def generate_download_url(self, key: str, expires_in: int = 600) -> str | None:
         return self.client.generate_presigned_url(
             "get_object",
             Params={"Bucket": self.bucket_name, "Key": key},
