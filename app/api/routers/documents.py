@@ -9,15 +9,37 @@ from app.core.dependencies import get_current_user
 from app.db.models.document import Document
 from app.db.models.user import User
 from app.db.session import get_db
-from app.schemas.document import DocumentOut
 from app.services.documents import require_document_access
 from app.services.projects import require_project_access
 from app.services.storage import LocalStorage
+from app.services.s3_storage import S3Storage
+from app.schemas.document import DocumentDownloadOut, DocumentOut
 
 router = APIRouter()
 
 
-def get_storage() -> LocalStorage:
+def get_storage():
+    if settings.USE_S3_STORAGE:
+        if not settings.AWS_S3_BUCKET:
+            raise RuntimeError("AWS_S3_BUCKET is not configured")
+
+        if not settings.AWS_ACCESS_KEY_ID:
+            raise RuntimeError("AWS_ACCESS_KEY_ID is not configured")
+
+        if not settings.AWS_SECRET_ACCESS_KEY:
+            raise RuntimeError("AWS_SECRET_ACCESS_KEY is not configured")
+
+        storage = S3Storage(
+            bucket_name=settings.AWS_S3_BUCKET,
+            region=settings.AWS_REGION,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+            use_ssl=settings.AWS_S3_USE_SSL,
+        )
+        storage.ensure_exists()
+        return storage
+
     storage = LocalStorage(settings.STORAGE_DIR)
     storage.ensure_exists()
     return storage
@@ -89,7 +111,7 @@ async def upload_project_document(
 
 
 
-@router.get("/document/{document_id}")
+@router.get("/document/{document_id}", response_model=DocumentDownloadOut | None)
 async def download_document(
     document_id: int,
     db: AsyncSession = Depends(get_db),
@@ -97,6 +119,10 @@ async def download_document(
 ):
     doc = await require_document_access(db, document_id, current_user.id)
     storage = get_storage()
+
+    if settings.USE_S3_STORAGE:
+        download_url = storage.generate_download_url(doc.storage_key)
+        return DocumentDownloadOut(download_url=download_url)
 
     path = storage.path_for(doc.storage_key)
     if not path.exists():
