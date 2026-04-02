@@ -91,7 +91,7 @@ flowchart TD
 
     B --> N[Pydantic Schemas]
     B --> O[Dependencies / Access Control]
-
+```
 
 ##  API Endpoints
 Auth
