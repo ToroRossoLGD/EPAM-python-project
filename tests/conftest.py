@@ -1,7 +1,11 @@
 import os
+import shutil
 
 os.environ["TESTING"] = "true"
-
+os.environ["USE_S3_STORAGE"] = "false"
+os.environ["STORAGE_DIR"] = "test_storage"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
+os.environ["JWT_SECRET"] = "test-secret"
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -37,6 +41,7 @@ async def db_session():
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+    shutil.rmtree("test_storage", ignore_errors=True)
 
 
 @pytest_asyncio.fixture(scope="function")

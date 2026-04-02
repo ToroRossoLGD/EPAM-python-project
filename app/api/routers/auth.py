@@ -38,3 +38,4 @@ async def login(payload: UserLogin, db: AsyncSession = Depends(get_db)) -> Token
 
     token = create_access_token(subject=str(user.id))
     return TokenOut(access_token=token, expires_in=settings.JWT_EXPIRES_MINUTES * 60)
+

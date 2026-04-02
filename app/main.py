@@ -2,21 +2,19 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api.routers.health import router as health_router
+import app.db.models.document
+import app.db.models.project
+import app.db.models.project_access
+import app.db.models.user
 from app.api.routers.auth import router as auth_router
+from app.api.routers.documents import router as documents_router
+from app.api.routers.health import router as health_router
+from app.api.routers.projects import router as projects_router
+from app.api.routers.users import router as users_router
 from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine
-from app.api.routers.users import router as users_router
-from app.api.routers.projects import router as projects_router
-from app.api.routers.documents import router as documents_router
 
-
-
-import app.db.models.user  
-import app.db.models.project  
-import app.db.models.project_access 
-import app.db.models.document   
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

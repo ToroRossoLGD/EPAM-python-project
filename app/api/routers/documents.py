@@ -1,7 +1,5 @@
-from app.services.document_validation import validate_document_metadata
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -9,40 +7,17 @@ from app.core.dependencies import get_current_user
 from app.db.models.document import Document
 from app.db.models.user import User
 from app.db.session import get_db
-from app.services.documents import require_document_access
-from app.services.projects import require_project_access
-from app.services.storage import LocalStorage
-from app.services.s3_storage import S3Storage
 from app.schemas.document import DocumentDownloadOut, DocumentOut
+from app.services.document_validation import validate_document_metadata
+from app.services.documents import (
+    list_documents_for_project,
+    require_document_access,
+)
+from app.services.projects import require_project_access
+from app.services.storage_base import Storage
+from app.services.storage_factory import get_storage
 
 router = APIRouter()
-
-
-def get_storage():
-    if settings.USE_S3_STORAGE:
-        if not settings.AWS_S3_BUCKET:
-            raise RuntimeError("AWS_S3_BUCKET is not configured")
-
-        if not settings.AWS_ACCESS_KEY_ID:
-            raise RuntimeError("AWS_ACCESS_KEY_ID is not configured")
-
-        if not settings.AWS_SECRET_ACCESS_KEY:
-            raise RuntimeError("AWS_SECRET_ACCESS_KEY is not configured")
-
-        storage = S3Storage(
-            bucket_name=settings.AWS_S3_BUCKET,
-            region=settings.AWS_REGION,
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            endpoint_url=settings.AWS_S3_ENDPOINT_URL,
-            use_ssl=settings.AWS_S3_USE_SSL,
-        )
-        storage.ensure_exists()
-        return storage
-
-    storage = LocalStorage(settings.STORAGE_DIR)
-    storage.ensure_exists()
-    return storage
 
 
 @router.get("/project/{project_id}/documents", response_model=list[DocumentOut])
@@ -53,8 +28,8 @@ async def list_project_documents(
 ) -> list[DocumentOut]:
     await require_project_access(db, project_id, current_user.id)
 
-    result = await db.execute(select(Document).where(Document.project_id == project_id).order_by(Document.id.desc()))
-    docs = result.scalars().all()
+    docs = await list_documents_for_project(db, project_id)
+
     return [
         DocumentOut(
             id=d.id,
@@ -74,9 +49,9 @@ async def upload_project_document(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    storage: Storage = Depends(get_storage),
 ) -> DocumentOut:
     await require_project_access(db, project_id, current_user.id)
-    storage = get_storage()
 
     validate_document_metadata(file)
 
@@ -109,24 +84,25 @@ async def upload_project_document(
     )
 
 
-
-
 @router.get("/document/{document_id}", response_model=DocumentDownloadOut | None)
 async def download_document(
     document_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    storage: Storage = Depends(get_storage),
 ):
     doc = await require_document_access(db, document_id, current_user.id)
-    storage = get_storage()
 
-    if settings.USE_S3_STORAGE:
-        download_url = storage.generate_download_url(doc.storage_key)
+    download_url = storage.generate_download_url(doc.storage_key)
+    if download_url is not None:
         return DocumentDownloadOut(download_url=download_url)
 
     path = storage.path_for(doc.storage_key)
-    if not path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found in storage")
+    if path is None or not path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found in storage",
+        )
 
     return FileResponse(
         path=path,
@@ -134,15 +110,16 @@ async def download_document(
         filename=doc.filename,
     )
 
+
 @router.put("/document/{document_id}", response_model=DocumentOut)
 async def update_document(
     document_id: int,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    storage: Storage = Depends(get_storage),
 ) -> DocumentOut:
     doc = await require_document_access(db, document_id, current_user.id)
-    storage = get_storage()
 
     validate_document_metadata(file)
 
@@ -174,14 +151,15 @@ async def update_document(
         size_bytes=doc.size_bytes,
     )
 
+
 @router.delete("/document/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document(
     document_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    storage: Storage = Depends(get_storage),
 ) -> None:
     doc = await require_document_access(db, document_id, current_user.id)
-    storage = get_storage()
 
     storage.delete(doc.storage_key)
     await db.delete(doc)
