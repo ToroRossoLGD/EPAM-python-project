@@ -11,7 +11,11 @@ from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdate
 from app.services.email import send_invite_email
-from app.services.projects import require_owner, require_project_access
+from app.services.projects import (
+    join_project_by_token,
+    require_owner,
+    require_project_access,
+)
 
 router = APIRouter()
 
@@ -135,3 +139,16 @@ async def share_project(
     send_invite_email(email, link)
 
     return {"detail": "Invite email sent"}
+
+@router.get("/join")
+async def join_project(
+    token: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict[str, str]:
+    detail = await join_project_by_token(
+        db=db,
+        token=token,
+        current_user=current_user,
+    )
+    return {"detail": detail}

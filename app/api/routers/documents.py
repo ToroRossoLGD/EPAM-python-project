@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -10,7 +9,10 @@ from app.db.models.user import User
 from app.db.session import get_db
 from app.schemas.document import DocumentDownloadOut, DocumentOut
 from app.services.document_validation import validate_document_metadata
-from app.services.documents import require_document_access
+from app.services.documents import (
+    list_documents_for_project,
+    require_document_access,
+)
 from app.services.projects import require_project_access
 from app.services.storage_base import Storage
 from app.services.storage_factory import get_storage
@@ -26,12 +28,7 @@ async def list_project_documents(
 ) -> list[DocumentOut]:
     await require_project_access(db, project_id, current_user.id)
 
-    result = await db.execute(
-        select(Document)
-        .where(Document.project_id == project_id)
-        .order_by(Document.id.desc())
-    )
-    docs = result.scalars().all()
+    docs = await list_documents_for_project(db, project_id)
 
     return [
         DocumentOut(
