@@ -92,9 +92,8 @@ flowchart TD
     B --> N[Pydantic Schemas]
     B --> O[Dependencies / Access Control]
 
-'''md
 
-  API Endpoints
+##  API Endpoints
 Auth
 POST /auth – Register user
 POST /login – Login and receive JWT
