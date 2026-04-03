@@ -36,11 +36,17 @@ This project implements a **project management system** where users can:
 
 
 app/
+
 ├── api/ # API routers (auth, projects, documents)
+
 ├── core/ # Config, security, dependencies
+
 ├── db/ # Database models and session
+
 ├── schemas/ # Pydantic schemas
+
 ├── services/ # Business logic & storage layer
+
 └── main.py # Entry point
 
 lambda/
@@ -94,24 +100,43 @@ flowchart TD
 ```
 
 ##  API Endpoints
-Auth
+**Auth**
+
 POST /auth – Register user
+
 POST /login – Login and receive JWT
-Projects
+
+**Projects**
+
 POST /projects – Create project
+
 GET /projects – List user-accessible projects
+
 GET /project/{id}/info – Get project details
+
 PUT /project/{id}/info – Update project
+
 DELETE /project/{id} – Delete project
-Documents
+
+**Documents**
+
 GET /project/{id}/documents – List documents
+
 POST /project/{id}/documents – Upload document
+
 GET /document/{id} – Download document
+
 PUT /document/{id} – Update document
+
 DELETE /document/{id} – Delete document
+
 Sharing
+
 POST /project/{id}/invite?user=<login> – Grant access
+
 POST /project/{id}/share?email=<email> – Send invite link (optional)
+
+
     ## Storage & File Handling
 Files are stored using:
 AWS S3 (production-ready)
@@ -120,6 +145,7 @@ Supported file types:
 .pdf
 .docx
 File validation:
+
 Size limits enforced per document
 ## AWS Lambda Integration
 
