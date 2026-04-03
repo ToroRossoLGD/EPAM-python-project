@@ -51,7 +51,7 @@ async def upload_project_document(
     current_user: User = Depends(get_current_user),
     storage: Storage = Depends(get_storage),
 ) -> DocumentOut:
-    await require_project_access(db, project_id, current_user.id)
+    project = await require_project_access(db, project_id, current_user.id)
 
     validate_document_metadata(file)
 
@@ -61,6 +61,8 @@ async def upload_project_document(
         file=file,
         max_size_bytes=settings.MAX_DOCUMENT_SIZE_BYTES,
     )
+
+    project.total_size_bytes += size
 
     doc = Document(
         project_id=project_id,
@@ -121,6 +123,9 @@ async def update_document(
 ) -> DocumentOut:
     doc = await require_document_access(db, document_id, current_user.id)
 
+    project = await require_project_access(db, doc.project_id, current_user.id)
+    old_size = doc.size_bytes
+
     validate_document_metadata(file)
 
     old_key = doc.storage_key
@@ -130,6 +135,8 @@ async def update_document(
         file=file,
         max_size_bytes=settings.MAX_DOCUMENT_SIZE_BYTES,
     )
+
+    project.total_size_bytes = project.total_size_bytes - old_size + new_size
 
     doc.filename = file.filename
     doc.content_type = file.content_type or "application/octet-stream"
@@ -161,6 +168,12 @@ async def delete_document(
 ) -> None:
     doc = await require_document_access(db, document_id, current_user.id)
 
+    project = await require_project_access(db, doc.project_id, current_user.id)
+    project.total_size_bytes -= doc.size_bytes
+
+    if project.total_size_bytes <0:
+        project.total_size_bytes = 0
+    
     storage.delete(doc.storage_key)
     await db.delete(doc)
     await db.commit()

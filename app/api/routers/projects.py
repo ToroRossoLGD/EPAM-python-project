@@ -35,7 +35,7 @@ async def create_project(
     await db.commit()
     await db.refresh(project)
 
-    return ProjectOut(id=project.id, name=project.name, description=project.description, owner_id=project.owner_id)
+    return ProjectOut(id=project.id, name=project.name, description=project.description, owner_id=project.owner_id, total_size_bytes=project.total_size_bytes)
 
 
 @router.get("/projects", response_model=list[ProjectOut])
@@ -50,7 +50,7 @@ async def list_projects(
         .order_by(Project.id.desc())
     )
     projects = result.scalars().all()
-    return [ProjectOut(id=p.id, name=p.name, description=p.description, owner_id=p.owner_id) for p in projects]
+    return [ProjectOut(id=p.id, name=p.name, description=p.description, owner_id=p.owner_id, total_size_bytes=p.total_size_bytes) for p in projects]
 
 
 @router.get("/project/{project_id}/info", response_model=ProjectOut)
@@ -60,7 +60,7 @@ async def get_project_info(
     current_user: User = Depends(get_current_user),
 ) -> ProjectOut:
     project = await require_project_access(db, project_id, current_user.id)
-    return ProjectOut(id=project.id, name=project.name, description=project.description, owner_id=project.owner_id)
+    return ProjectOut(id=project.id, name=project.name, description=project.description, owner_id=project.owner_id, total_size_bytes=project.total_size_bytes)
 
 
 @router.put("/project/{project_id}/info", response_model=ProjectOut)
@@ -80,7 +80,7 @@ async def update_project_info(
     await db.commit()
     await db.refresh(project)
 
-    return ProjectOut(id=project.id, name=project.name, description=project.description, owner_id=project.owner_id)
+    return ProjectOut(id=project.id, name=project.name, description=project.description, owner_id=project.owner_id, total_size_bytes=project.total_size_bytes)
 
 
 @router.delete("/project/{project_id}", status_code=status.HTTP_204_NO_CONTENT)

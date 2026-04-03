@@ -16,3 +16,4 @@ class ProjectOut(BaseModel):
     name: str
     description: str | None
     owner_id: int
+    total_size_bytes: int
