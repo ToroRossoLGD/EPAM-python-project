@@ -137,7 +137,8 @@ POST /project/{id}/invite?user=<login> – Grant access
 POST /project/{id}/share?email=<email> – Send invite link (optional)
 
 
-    ## Storage & File Handling
+## Storage & File Handling
+
 Files are stored using:
 AWS S3 (production-ready)
 MinIO (local development)
