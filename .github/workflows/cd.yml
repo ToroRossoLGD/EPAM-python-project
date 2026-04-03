@@ -29,7 +29,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/epam-python-project
+          images: ghcr.io/tororossolgd/epam-python-project
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -37,6 +37,6 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/epam-python-project:latest
-            ghcr.io/${{ github.repository_owner }}/epam-python-project:${{ github.sha }}
+            ghcr.io/tororossolgd/epam-python-project:latest
+            ghcr.io/tororossolgd/epam-python-project:${{ github.sha }}
           labels: ${{ steps.meta.outputs.labels }}
