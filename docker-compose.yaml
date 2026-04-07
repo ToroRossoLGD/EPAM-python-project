@@ -23,7 +23,7 @@ services:
       - minio_data:/data
 
   app:
-    build: .
+    image: ghcr.io/tororossolgd/epam-python-project:latest
     depends_on:
       - db
       - minio
