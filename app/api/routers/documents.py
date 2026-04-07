@@ -55,12 +55,33 @@ async def upload_project_document(
 
     validate_document_metadata(file)
 
+    if file.size is not None:
+        projected_total = project.total_size_bytes + file.size
+        if projected_total > settings.MAX_PROJECT_SIZE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, 
+                detail=(
+                    f"Project exceeds max total size of "
+                    f"{settings.MAX_PROJECT_SIZE_BYTES} bytes"
+                ),
+            )
+
     key = storage.build_key(project_id, file.filename)
     size = await storage.save(
         key=key,
         file=file,
         max_size_bytes=settings.MAX_DOCUMENT_SIZE_BYTES,
     )
+
+    if project.total_size_bytes + size > settings.MAX_PROJECT_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=(
+                f"Project exceeds max total size of "
+                f"{settings.MAX_PROJECT_SIZE_BYTES} bytes"
+            ),
+        )
+
 
     project.total_size_bytes += size
 
@@ -126,6 +147,17 @@ async def update_document(
     project = await require_project_access(db, doc.project_id, current_user.id)
     old_size = doc.size_bytes
 
+    if file.size is not None:
+        projected_total = project.total_size_bytes - old_size + file.size
+        if projected_total > settings.MAX_PROJECT_SIZE_BYTES:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=(
+                    f"Project exceeds max total size of "
+                    f"{settings.MAX_PROJECT_SIZE_BYTES} bytes"
+                ),
+            )
+
     validate_document_metadata(file)
 
     old_key = doc.storage_key
@@ -136,7 +168,17 @@ async def update_document(
         max_size_bytes=settings.MAX_DOCUMENT_SIZE_BYTES,
     )
 
-    project.total_size_bytes = project.total_size_bytes - old_size + new_size
+    updated_total = project.total_size_bytes - old_size + new_size
+    if updated_total > settings.MAX_PROJECT_SIZE_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=(
+                f"Project exceeds max total size of "
+                f"{settings.MAX_PROJECT_SIZE_BYTES} bytes"
+            ),
+        )
+
+    project.total_size_bytes = updated_total
 
     doc.filename = file.filename
     doc.content_type = file.content_type or "application/octet-stream"

@@ -1,6 +1,6 @@
 from fastapi import HTTPException, status
 from jose import JWTError, jwt
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -80,3 +80,27 @@ async def join_project_by_token(
     await db.commit()
 
     return "Joined project successfully"
+
+async def list_projects_for_user_raw(
+        db: AsyncSession,
+        user_id: int,
+) -> list[dict]:
+    query = text(
+        """
+
+        SELECT
+            p.id,
+            p.name,
+            p.description,
+            p.owner_id,
+            p.total_size_bytes
+        FROM projects p
+        JOIN project_access pa
+            ON pa.project_id = p.id
+        WHERE pa.user_id = :user_id
+        ORDER BY p.id DESC
+        """
+    )
+    result = await db.execute(query, {"user_id": user_id})
+    rows = result.mappings().all()
+    return [dict(row) for row in rows]

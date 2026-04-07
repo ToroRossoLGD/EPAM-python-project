@@ -13,6 +13,7 @@ from app.schemas.project import ProjectCreate, ProjectOut, ProjectUpdate
 from app.services.email import send_invite_email
 from app.services.projects import (
     join_project_by_token,
+    list_projects_for_user_raw,
     require_owner,
     require_project_access,
 )
@@ -43,14 +44,18 @@ async def list_projects(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[ProjectOut]:
-    result = await db.execute(
-        select(Project)
-        .join(ProjectAccess, ProjectAccess.project_id == Project.id)
-        .where(ProjectAccess.user_id == current_user.id)
-        .order_by(Project.id.desc())
-    )
-    projects = result.scalars().all()
-    return [ProjectOut(id=p.id, name=p.name, description=p.description, owner_id=p.owner_id, total_size_bytes=p.total_size_bytes) for p in projects]
+    projects = await list_projects_for_user_raw(db, current_user.id)
+
+    return [
+        ProjectOut(
+            id=p["id"],
+            name=p["name"],
+            description=p["description"],
+            owner_id=p["owner_id"],
+            total_size_bytes=p["total_size_bytes"],
+        )
+        for p in projects
+    ]
 
 
 @router.get("/project/{project_id}/info", response_model=ProjectOut)
