@@ -1,8 +1,13 @@
 #!/bin/bash
 set -e
 
+
+
+if ! sudo systemctl is-active --quiet docker; then
+    sudo systemctl start docker
+fi
+
 cd ~/EPAM-python-project
 
-git pull origin main
 docker pull ghcr.io/tororossolgd/epam-python-project:latest
 docker-compose up -d
