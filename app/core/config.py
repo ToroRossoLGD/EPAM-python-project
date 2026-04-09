@@ -19,6 +19,7 @@ class Settings(BaseSettings):
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     )
     MAX_DOCUMENT_SIZE_BYTES: int = 10 * 1024 * 1024  
+    MAX_PROJECT_SIZE_BYTES: int = 50 * 1024 * 1024
 
     AWS_ACCESS_KEY_ID: str | None = None
     AWS_SECRET_ACCESS_KEY: str | None = None
